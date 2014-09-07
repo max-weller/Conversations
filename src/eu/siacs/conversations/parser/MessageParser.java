@@ -1,6 +1,8 @@
 package eu.siacs.conversations.parser;
 
 import android.os.SystemClock;
+import android.util.Log;
+import eu.siacs.conversations.utils.ImageDownloader;
 import net.java.otr4j.session.Session;
 import net.java.otr4j.session.SessionStatus;
 import eu.siacs.conversations.Config;
@@ -179,6 +181,10 @@ public class MessageParser extends AbstractParser implements
 			return null;
 		}
 		finishedMessage.setTime(getTimestamp(packet));
+		if (finishedMessage.isImageUrl()) {
+			ImageDownloader downloader = new ImageDownloader(mXmppConnectionService, finishedMessage);
+			downloader.start();
+		}
 		return finishedMessage;
 	}
 

@@ -92,7 +92,14 @@
                     android:title="@string/pref_dont_save_encrypted" />
             </PreferenceCategory>
         </PreferenceScreen>
-
+        
+        <CheckBoxPreference
+        android:key="preview_image_urls"
+        android:title="@string/pref_preview_image_urls"
+        android:entries="@array/image_preview"
+        android:entryValues="@array/image_preview_values"
+        android:defaultValue="1"/>
+        
         <CheckBoxPreference
             android:defaultValue="false"
             android:key="never_send"

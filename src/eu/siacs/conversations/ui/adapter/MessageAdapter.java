@@ -3,6 +3,8 @@ package eu.siacs.conversations.ui.adapter;
 import java.util.HashMap;
 import java.util.List;
 
+import android.net.Uri;
+import android.util.Log;
 import eu.siacs.conversations.Config;
 import eu.siacs.conversations.R;
 import eu.siacs.conversations.entities.Contact;
@@ -101,11 +103,15 @@ public class MessageAdapter extends ArrayAdapter<Message> {
 				&& message.getMergedStatus() <= Message.STATUS_RECEIVED;
 		if (message.getType() == Message.TYPE_IMAGE) {
 			String[] fileParams = message.getBody().split(",");
-			try {
-				long size = Long.parseLong(fileParams[0]);
-				filesize = size / 1024 + " KB";
-			} catch (NumberFormatException e) {
-				filesize = "0 KB";
+			if (fileParams.length == 4) {
+				filesize = fileParams[3];
+			} else {
+				try {
+					long size = Long.parseLong(fileParams[0]);
+					filesize = size / 1024 + " KB";
+				} catch (NumberFormatException e) {
+					filesize = "0 KB";
+				}
 			}
 		}
 		switch (message.getMergedStatus()) {
@@ -262,8 +268,8 @@ public class MessageAdapter extends ArrayAdapter<Message> {
 		}
 		viewHolder.messageBody.setVisibility(View.GONE);
 		viewHolder.image.setVisibility(View.VISIBLE);
-		String[] fileParams = message.getBody().split(",");
-		if (fileParams.length == 3) {
+		String[] fileParams = message.getBody().split(",", 4);
+		if (fileParams.length >= 3) {
 			double target = metrics.density * 288;
 			int w = Integer.parseInt(fileParams[1]);
 			int h = Integer.parseInt(fileParams[2]);
@@ -284,10 +290,21 @@ public class MessageAdapter extends ArrayAdapter<Message> {
 
 			@Override
 			public void onClick(View v) {
-				Intent intent = new Intent(Intent.ACTION_VIEW);
-				intent.setDataAndType(activity.xmppConnectionService
-						.getFileBackend().getJingleFileUri(message), "image/*");
-				getContext().startActivity(intent);
+				String[] fileParams = message.getBody().split(",", 4);
+				if (fileParams.length == 4) {
+					// If this was a image url preview, the original url is
+					// saved in field no. 4 and should be opened in browser
+
+					Intent intent = new Intent(Intent.ACTION_VIEW);
+					intent.setData(Uri.parse(fileParams[3]));
+					getContext().startActivity(intent);
+
+				} else {
+					Intent intent = new Intent(Intent.ACTION_VIEW);
+					intent.setDataAndType(activity.xmppConnectionService
+							.getFileBackend().getJingleFileUri(message), "image/*");
+					getContext().startActivity(intent);
+				}
 			}
 		});
 		viewHolder.image.setOnLongClickListener(new OnLongClickListener() {

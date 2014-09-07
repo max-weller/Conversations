@@ -368,4 +368,9 @@ public class Message extends AbstractEntity {
 			return prev.mergable(this);
 		}
 	}
+
+	public boolean isImageUrl() {
+		//TODO improve image url recognition regex...
+		return getBody().matches("^https?://.*\\.(webp|jpg|png|gif)$");
+	}
 }
