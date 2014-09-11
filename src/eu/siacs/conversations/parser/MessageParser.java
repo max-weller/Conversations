@@ -58,6 +58,11 @@ public class MessageParser extends AbstractParser implements
 			}
 
 		}
+		//TODO check sender is in contact list
+		if (shouldDisplayImagePreview(finishedMessage)) {
+			ImageDownloader downloader = new ImageDownloader(mXmppConnectionService, finishedMessage);
+			finishedMessage.setDownloadable(downloader);
+		}
 		finishedMessage.setTime(getTimestamp(packet));
 		return finishedMessage;
 	}
@@ -185,10 +190,8 @@ public class MessageParser extends AbstractParser implements
 			return null;
 		}
 		finishedMessage.setTime(getTimestamp(packet));
-		SharedPreferences sharedPref = mXmppConnectionService.getPreferences();
-		if (finishedMessage.isImageUrl() && sharedPref.getBoolean("preview_image_urls_enabled", true)) {
+		if (shouldDisplayImagePreview(finishedMessage)) {
 			ImageDownloader downloader = new ImageDownloader(mXmppConnectionService, finishedMessage);
-			//downloader.start();
 			finishedMessage.setDownloadable(downloader);
 		}
 		return finishedMessage;
@@ -486,4 +489,10 @@ public class MessageParser extends AbstractParser implements
 			}
 		}
 	}
+
+	private boolean shouldDisplayImagePreview(Message message) {
+		SharedPreferences sharedPref = mXmppConnectionService.getPreferences();
+		return (message.isImageUrl() && sharedPref.getBoolean("preview_image_urls_enabled", true));
+	}
+
 }
