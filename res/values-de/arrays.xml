@@ -19,4 +19,9 @@
         <item>524288</item>
         <item>1048576</item>
     </string-array>
+    <string-array name="image_preview_contextmenu">
+        <item>Im Browser öffnen</item>
+        <item>Linkadresse kopieren</item>
+        <item>Teilen</item>
+    </string-array>
 </resources>

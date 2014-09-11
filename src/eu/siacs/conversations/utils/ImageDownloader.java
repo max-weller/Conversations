@@ -1,10 +1,12 @@
 package eu.siacs.conversations.utils;
 
-import android.content.SharedPreferences;
+import android.app.AlertDialog;
+import android.content.*;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.util.Log;
 import eu.siacs.conversations.Config;
+import eu.siacs.conversations.R;
 import eu.siacs.conversations.entities.Downloadable;
 import eu.siacs.conversations.entities.Message;
 import eu.siacs.conversations.persistance.FileBackend;
@@ -123,6 +125,7 @@ public class ImageDownloader implements Downloadable {
 		// Do the http request
 		DefaultHttpClient client = new DefaultHttpClient();
 		HttpRequestBase request = new HttpGet(this.message.getBody());
+
 		HttpResponse res = client.execute(request);
 
 		// Download the file
@@ -143,5 +146,6 @@ public class ImageDownloader implements Downloadable {
 		output.close();
 		input.close();
 	}
+
 
 }

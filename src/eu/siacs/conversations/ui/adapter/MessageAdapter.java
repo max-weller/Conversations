@@ -3,6 +3,9 @@ package eu.siacs.conversations.ui.adapter;
 import java.util.HashMap;
 import java.util.List;
 
+import android.app.AlertDialog;
+import android.content.ClipboardManager;
+import android.content.DialogInterface;
 import android.net.Uri;
 import android.util.Log;
 import eu.siacs.conversations.Config;
@@ -12,6 +15,7 @@ import eu.siacs.conversations.entities.Conversation;
 import eu.siacs.conversations.entities.Downloadable;
 import eu.siacs.conversations.entities.Message;
 import eu.siacs.conversations.ui.ConversationActivity;
+import eu.siacs.conversations.utils.ImageDownloader;
 import eu.siacs.conversations.utils.UIHelper;
 import eu.siacs.conversations.xmpp.jingle.JingleConnection;
 import android.content.Context;
@@ -293,40 +297,76 @@ public class MessageAdapter extends ArrayAdapter<Message> {
 
 			@Override
 			public void onClick(View v) {
-				String[] fileParams = message.getBody().split(",", 4);
-				if (fileParams.length == 4) {
-					// If this was a image url preview, the original url is
-					// saved in field no. 4 and should be opened in browser
-
-					Intent intent = new Intent(Intent.ACTION_VIEW);
-					intent.setData(Uri.parse(fileParams[3]));
-					getContext().startActivity(intent);
-
-				} else {
-					Intent intent = new Intent(Intent.ACTION_VIEW);
-					intent.setDataAndType(activity.xmppConnectionService
-							.getFileBackend().getJingleFileUri(message), "image/*");
-					getContext().startActivity(intent);
-				}
+				viewImageMessage(message);
 			}
 		});
 		viewHolder.image.setOnLongClickListener(new OnLongClickListener() {
 
 			@Override
 			public boolean onLongClick(View v) {
-				Intent shareIntent = new Intent();
-				shareIntent.setAction(Intent.ACTION_SEND);
-				shareIntent.putExtra(Intent.EXTRA_STREAM,
-						activity.xmppConnectionService.getFileBackend()
-								.getJingleFileUri(message));
-				shareIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-				shareIntent.setType("image/webp");
-				getContext().startActivity(
-						Intent.createChooser(shareIntent,
-								getContext().getText(R.string.share_with)));
+				String[] fileParams = message.getBody().split(",", 4);
+				if (fileParams.length == 4) {
+					showImagePreviewContextmenu(message);
+					return true;
+				}
+				shareImageMessage(message);
 				return true;
 			}
 		});
+	}
+
+	public void showImagePreviewContextmenu(final Message message) {
+		final String fileParams[] = message.getBody().split(",");
+		new AlertDialog.Builder(getContext())
+		.setTitle(R.string.image_context_menu_title)
+		.setItems(R.array.image_preview_contextmenu,
+				new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialogInterface, int i) {
+						switch(i) {
+							case 0:
+								Intent intent = new Intent(Intent.ACTION_VIEW);
+								intent.setData(Uri.parse(fileParams[3]));
+								getContext().startActivity(intent);
+								break;
+							case 1:
+								ClipboardManager cm = (ClipboardManager)getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+								cm.setText(fileParams[3]);
+								break;
+							case 2:
+								shareImageMessage(message);
+								break;
+						}
+					}
+				})
+		.setCancelable(true)
+		.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+			@Override
+			public void onClick(DialogInterface dialogInterface, int i) {
+				dialogInterface.dismiss();
+			}
+		})
+		.show();
+	}
+
+	public void shareImageMessage(Message message) {
+		Intent shareIntent = new Intent();
+		shareIntent.setAction(Intent.ACTION_SEND);
+		shareIntent.putExtra(Intent.EXTRA_STREAM,
+				activity.xmppConnectionService.getFileBackend()
+						.getJingleFileUri(message));
+		shareIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+		shareIntent.setType("image/webp");
+		getContext().startActivity(
+				Intent.createChooser(shareIntent,
+						getContext().getText(R.string.share_with)));
+	}
+
+	public void viewImageMessage(Message message) {
+		Intent intent = new Intent(Intent.ACTION_VIEW);
+		intent.setDataAndType(activity.xmppConnectionService
+				.getFileBackend().getJingleFileUri(message), "image/*");
+		getContext().startActivity(intent);
 	}
 
 	@Override

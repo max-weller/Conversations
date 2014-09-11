@@ -33,4 +33,11 @@
         <item>28800</item>
         <item>-1</item>
     </integer-array>
+    <string-array name="image_preview_contextmenu">
+        <item>Open in browser</item>
+        <item>Copy link address</item>
+        <item>View image</item>
+        <item>Share image</item>
+    </string-array>
+
 </resources>
