@@ -180,7 +180,8 @@ public class FileBackend {
 			long size = file.getSize();
 			int width = scalledBitmap.getWidth();
 			int height = scalledBitmap.getHeight();
-			message.setBody(Long.toString(size) + ',' + width + ',' + height);
+			message.setBody(Long.toString(size) + ',' + width + ',' + height +
+					(message.getBody() != "" ? ','+message.getBody() : ""));
 			return file;
 		} catch (FileNotFoundException e) {
 			throw new ImageCopyException(R.string.error_file_not_found);

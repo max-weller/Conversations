@@ -188,7 +188,8 @@ public class MessageParser extends AbstractParser implements
 		SharedPreferences sharedPref = mXmppConnectionService.getPreferences();
 		if (finishedMessage.isImageUrl() && sharedPref.getBoolean("preview_image_urls_enabled", true)) {
 			ImageDownloader downloader = new ImageDownloader(mXmppConnectionService, finishedMessage);
-			downloader.start();
+			//downloader.start();
+			finishedMessage.setDownloadable(downloader);
 		}
 		return finishedMessage;
 	}

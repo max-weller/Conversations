@@ -105,13 +105,16 @@ public class MessageAdapter extends ArrayAdapter<Message> {
 			String[] fileParams = message.getBody().split(",");
 			if (fileParams.length == 4) {
 				filesize = fileParams[3];
-			} else {
+			} else if (fileParams.length == 3) {
 				try {
 					long size = Long.parseLong(fileParams[0]);
 					filesize = size / 1024 + " KB";
 				} catch (NumberFormatException e) {
 					filesize = "0 KB";
 				}
+			} else {
+				// display URL for un-downloaded
+				filesize = message.getBody();
 			}
 		}
 		switch (message.getMergedStatus()) {

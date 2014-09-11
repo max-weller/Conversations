@@ -1,11 +1,19 @@
 package eu.siacs.conversations.utils;
 
+import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.util.Log;
+import eu.siacs.conversations.Config;
+import eu.siacs.conversations.entities.Downloadable;
 import eu.siacs.conversations.entities.Message;
+import eu.siacs.conversations.persistance.FileBackend;
 import eu.siacs.conversations.services.XmppConnectionService;
 import eu.siacs.conversations.xmpp.jingle.JingleFile;
+import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.impl.client.DefaultHttpClient;
 
@@ -18,27 +26,75 @@ import java.io.*;
  * @author Max Weller
  * @version 2014-09-07-001
  */
-public class ImageDownloader extends Thread {
+public class ImageDownloader implements Downloadable {
 
 	private XmppConnectionService xmppConnectionService;
 	Message message;
-	JingleFile file;
+	File tempFile;
 
 	public ImageDownloader(XmppConnectionService service, Message message) {
 		this.message = message;
 		this.xmppConnectionService = service;
 
 		message.setType(Message.TYPE_IMAGE);
-		message.setStatus(Message.STATUS_RECEIVING);
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				threadCheck();
+			}
+		}).start();
 	}
 
-	@Override
-	public void run() {
+	public void start() {
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				threadDownload();
+			}
+		}).start();
+	}
+
+	private void threadCheck() {
 		try {
-			this.file = xmppConnectionService.getFileBackend().getJingleFile(message);
+			Log.d(Config.LOGTAG, "ImageDownloader, checking file size...");
+			this.xmppConnectionService.markMessage(this.message,
+					Message.STATUS_RECEIVING);
+
+			SharedPreferences prefs = xmppConnectionService.getPreferences();
+			int allowedImageSize = Integer.valueOf(prefs.getString("auto_accept_file_size", "524288"), 10);
+			int imageSize = this.retrieveFileSize();
+
+			if (imageSize > allowedImageSize)  {
+				this.xmppConnectionService.markMessage(this.message,
+						Message.STATUS_RECEIVED_OFFER);
+			} else {
+				this.threadDownload();
+			}
+
+		} catch(Exception ex) {
+			ex.printStackTrace();
+			message.setType(Message.TYPE_TEXT);
+
+			this.xmppConnectionService.markMessage(this.message,
+					Message.STATUS_RECEIVED);
+		}
+	}
+
+	private void threadDownload() {
+		try {
+			Log.d(Config.LOGTAG, "ImageDownloader, downloading...");
+			this.xmppConnectionService.markMessage(this.message,
+					Message.STATUS_RECEIVING);
+
+			File outputDir = xmppConnectionService.getCacheDir();
+			this.tempFile = File.createTempFile("download", "jpg", outputDir);
+
 			handleImagePreview();
 
-			updateMessageBody();
+			FileBackend backend = xmppConnectionService.getFileBackend();
+			Uri uri = Uri.parse("file://" + tempFile.getAbsolutePath());
+			Log.d(Config.LOGTAG, "ImageDownloader temp file uri: "+uri.toString());
+			backend.copyImageToPrivateStorage(message, uri);
 
 			this.xmppConnectionService.markMessage(this.message,
 					Message.STATUS_RECEIVED);
@@ -52,15 +108,15 @@ public class ImageDownloader extends Thread {
 		}
 	}
 
-	private void updateMessageBody() {
-		BitmapFactory.Options options = new BitmapFactory.Options();
-		options.inJustDecodeBounds = true;
-		BitmapFactory.decodeFile(this.file.getAbsolutePath(), options);
-		int imageHeight = options.outHeight;
-		int imageWidth = options.outWidth;
-		message.setBody(Long.toString(file.getSize()) + ',' + imageWidth + ','
-				+ imageHeight + ',' + message.getBody());
-
+	private int retrieveFileSize() throws IOException {
+		// Do the http request
+		DefaultHttpClient client = new DefaultHttpClient();
+		HttpRequestBase request = new HttpHead(this.message.getBody());
+		HttpResponse res = client.execute(request);
+		Header contLen = res.getFirstHeader("Content-Length");
+		if (contLen == null) return Integer.MAX_VALUE;
+		int value = Integer.parseInt(contLen.getValue(), 10);
+		return value;
 	}
 
 	private void handleImagePreview() throws IOException {
@@ -71,7 +127,7 @@ public class ImageDownloader extends Thread {
 
 		// Download the file
 		InputStream input = new BufferedInputStream(res.getEntity().getContent());
-		OutputStream output = new FileOutputStream(this.file);
+		OutputStream output = new FileOutputStream(this.tempFile);
 
 		byte data[] = new byte[1024];
 
