@@ -1,4 +1,4 @@
-package eu.siacs.conversations.utils;
+package eu.siacs.conversations.utils.http;
 
 import android.app.AlertDialog;
 import android.content.*;

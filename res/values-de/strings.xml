@@ -233,4 +233,6 @@
     <string name="pref_preview_image_urls_summary"/>
     <string name="pref_preview_image_urls">Vorschau für Bild-URLs anzeigen</string>
     <string name="image_context_menu_title">Bildaktionen</string>
+    <string name="pref_ui_options">Benutzeroberfläche</string>
+
 </resources>
