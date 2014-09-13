@@ -3,8 +3,8 @@ package eu.siacs.conversations.parser;
 import android.content.SharedPreferences;
 import android.os.SystemClock;
 import android.util.Log;
-import eu.siacs.conversations.R;
-import eu.siacs.conversations.utils.ImageDownloader;
+import eu.siacs.conversations.utils.http.ImageDownloadManager;
+import eu.siacs.conversations.utils.http.ImageDownloader;
 import net.java.otr4j.session.Session;
 import net.java.otr4j.session.SessionStatus;
 import eu.siacs.conversations.Config;
@@ -18,8 +18,6 @@ import eu.siacs.conversations.xml.Element;
 import eu.siacs.conversations.xmpp.OnMessagePacketReceived;
 import eu.siacs.conversations.xmpp.pep.Avatar;
 import eu.siacs.conversations.xmpp.stanzas.MessagePacket;
-
-import java.util.Locale;
 
 public class MessageParser extends AbstractParser implements
 		OnMessagePacketReceived {
@@ -58,9 +56,10 @@ public class MessageParser extends AbstractParser implements
 			}
 
 		}
-		//TODO check sender is in contact list
-		if (shouldDisplayImagePreview(finishedMessage)) {
-			ImageDownloader downloader = new ImageDownloader(mXmppConnectionService, finishedMessage);
+
+		ImageDownloadManager idm = mXmppConnectionService.getImageDownloadManager();
+		if (idm.shouldDisplayImagePreview(finishedMessage)) {
+			ImageDownloader downloader = idm.createNewConnection(finishedMessage);
 			finishedMessage.setDownloadable(downloader);
 		}
 		finishedMessage.setTime(getTimestamp(packet));
@@ -190,8 +189,10 @@ public class MessageParser extends AbstractParser implements
 			return null;
 		}
 		finishedMessage.setTime(getTimestamp(packet));
-		if (shouldDisplayImagePreview(finishedMessage)) {
-			ImageDownloader downloader = new ImageDownloader(mXmppConnectionService, finishedMessage);
+
+		ImageDownloadManager idm = mXmppConnectionService.getImageDownloadManager();
+		if (idm.shouldDisplayImagePreview(finishedMessage)) {
+			ImageDownloader downloader = idm.createNewConnection(finishedMessage);
 			finishedMessage.setDownloadable(downloader);
 		}
 		return finishedMessage;
@@ -491,11 +492,6 @@ public class MessageParser extends AbstractParser implements
 				contact.setPresenceName(nick.getContent());
 			}
 		}
-	}
-
-	private boolean shouldDisplayImagePreview(Message message) {
-		SharedPreferences sharedPref = mXmppConnectionService.getPreferences();
-		return (message.isImageUrl() && sharedPref.getBoolean("preview_image_urls_enabled", true));
 	}
 
 }

@@ -34,10 +34,12 @@ public class ImageDownloader implements Downloadable {
 	Message message;
 	File tempFile;
 
-	public ImageDownloader(XmppConnectionService service, Message message) {
-		this.message = message;
+	public ImageDownloader(XmppConnectionService service) {
 		this.xmppConnectionService = service;
+	}
 
+	public void init(Message message) {
+		this.message = message;
 		message.setType(Message.TYPE_IMAGE);
 		new Thread(new Runnable() {
 			@Override

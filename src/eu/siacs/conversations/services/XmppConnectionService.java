@@ -12,6 +12,7 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import eu.siacs.conversations.utils.http.ImageDownloadManager;
 import org.openintents.openpgp.util.OpenPgpApi;
 import org.openintents.openpgp.util.OpenPgpServiceConnection;
 
@@ -103,6 +104,7 @@ public class XmppConnectionService extends Service {
 	private CopyOnWriteArrayList<Conversation> conversations = null;
 	private JingleConnectionManager mJingleConnectionManager = new JingleConnectionManager(
 			this);
+	private ImageDownloadManager mImageDownloadManager = new ImageDownloadManager(this);
 
 	private OnConversationUpdate mOnConversationUpdate = null;
 	private int convChangedListenerCount = 0;
@@ -1720,6 +1722,10 @@ public class XmppConnectionService extends Service {
 
 	public JingleConnectionManager getJingleConnectionManager() {
 		return this.mJingleConnectionManager;
+	}
+
+	public ImageDownloadManager getImageDownloadManager() {
+		return this.mImageDownloadManager;
 	}
 
 	public interface OnConversationUpdate {
