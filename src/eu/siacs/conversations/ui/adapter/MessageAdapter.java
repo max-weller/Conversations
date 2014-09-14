@@ -322,20 +322,20 @@ public class MessageAdapter extends ArrayAdapter<Message> {
 					public void onClick(DialogInterface dialogInterface, int i) {
 						switch(i) {
 							case 0:
-                                                            Intent intent = new Intent(Intent.ACTION_VIEW);
-                                                            intent.setData(Uri.parse(fileParams[3]));
-                                                            getContext().startActivity(intent);
-                                                            break;
+-								Intent intent = new Intent(Intent.ACTION_VIEW);
+                                                            	intent.setData(Uri.parse(fileParams[3]));
+                                                            	getContext().startActivity(intent);
+                                                            	break;
 							case 1:
-                                                            ClipboardManager cm = (ClipboardManager)getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-                                                            cm.setText(fileParams[3]);
-                                                            break;
+                                                            	ClipboardManager cm = (ClipboardManager)getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                                                            	cm.setText(fileParams[3]);
+                                                            	break;
 							case 2:
-                                                            viewImageMessage(message);
-                                                            break;
+                                                            	viewImageMessage(message);
+                                                            	break;
 							case 3:
-                                                            shareImageMessage(message);
-                                                            break;
+                                                            	shareImageMessage(message);
+                                                            	break;
 						}
 					}
 				})
