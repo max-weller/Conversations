@@ -409,6 +409,10 @@ public abstract class XmppActivity extends Activity {
 
 	public void selectPresence(final Conversation conversation,
 			final OnPresenceSelected listener) {
+		if (conversation.getMode() == Conversation.MODE_MULTI || Config.USE_HTTP_UPLOAD_FOR_IMAGES) {
+			listener.onPresenceSelected();
+			return;
+		}
 		Contact contact = conversation.getContact();
 		if (!contact.showInRoster()) {
 			showAddToRosterDialog(conversation);

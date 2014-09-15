@@ -22,7 +22,7 @@ public class ImageDownloadManager {
 
 	private XmppConnectionService mXmppConnectionService;
 
-	private List<JingleConnection> connections = new CopyOnWriteArrayList<JingleConnection>();
+	private List<ImageDownloader> connections = new CopyOnWriteArrayList<ImageDownloader>();
 
 	public ImageDownloadManager(XmppConnectionService service) {
 		this.mXmppConnectionService = service;
@@ -31,7 +31,12 @@ public class ImageDownloadManager {
 	public ImageDownloader createNewConnection(Message message) {
 		ImageDownloader downloader = new ImageDownloader(mXmppConnectionService);
 		downloader.init(message);
+		this.connections.add(downloader);
 		return downloader;
+	}
+
+	public void finishConnection(ImageDownloader connection) {
+		this.connections.remove(connection);
 	}
 
 	public boolean shouldDisplayImagePreview(Message message) {

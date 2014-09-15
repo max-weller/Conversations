@@ -19,6 +19,9 @@ public final class Config {
 
 	public static final boolean PARSE_EMOTICONS = false;
 
+	public static final boolean USE_HTTP_UPLOAD_FOR_IMAGES = true;
+	public static final String HTTP_UPLOAD_ENDPOINT = "https://mediacru.sh";
+
 	private Config() {
 
 	}

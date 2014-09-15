@@ -40,10 +40,7 @@ public class ShareWithActivity extends XmppActivity {
 	private UiCallback<Message> attachImageCallback = new UiCallback<Message>() {
 
 		@Override
-		public void userInputRequried(PendingIntent pi, Message object) {
-			// TODO Auto-generated method stub
-
-		}
+		public void userInputRequried(PendingIntent pi, Message object) { }
 
 		@Override
 		public void success(Message message) {
@@ -51,10 +48,7 @@ public class ShareWithActivity extends XmppActivity {
 		}
 
 		@Override
-		public void error(int errorCode, Message object) {
-			// TODO Auto-generated method stub
-
-		}
+		public void error(int errorCode, Message object) { }
 	};
 
 	protected void onActivityResult(int requestCode, int resultCode,
@@ -94,10 +88,10 @@ public class ShareWithActivity extends XmppActivity {
 			public void onItemClick(AdapterView<?> arg0, View arg1,
 					int position, long arg3) {
 				Conversation conversation = mConversations.get(position);
-				if (conversation.getMode() == Conversation.MODE_SINGLE
-						|| share.uri == null) {
+				//if (conversation.getMode() == Conversation.MODE_SINGLE
+				//		|| share.uri == null) {
 					share(mConversations.get(position));
-				}
+			    //}
 			}
 		});
 
@@ -133,7 +127,7 @@ public class ShareWithActivity extends XmppActivity {
 		}
 		if (xmppConnectionServiceBound) {
 			xmppConnectionService.populateWithOrderedConversations(
-					mConversations, this.share.uri == null);
+					mConversations, true); //this.share.uri == null);
 		}
 		super.onStart();
 	}
@@ -145,8 +139,8 @@ public class ShareWithActivity extends XmppActivity {
 			share();
 			return;
 		}
-		xmppConnectionService.populateWithOrderedConversations(mConversations,
-				this.share != null && this.share.uri == null);
+		xmppConnectionService.populateWithOrderedConversations(mConversations,true);
+				//this.share != null && this.share.uri == null);
 	}
 
 	private void share() {

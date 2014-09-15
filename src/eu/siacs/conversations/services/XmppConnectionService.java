@@ -13,6 +13,7 @@ import java.util.TimeZone;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import eu.siacs.conversations.utils.http.ImageDownloadManager;
+import eu.siacs.conversations.utils.http.ImageUploader;
 import org.openintents.openpgp.util.OpenPgpApi;
 import org.openintents.openpgp.util.OpenPgpServiceConnection;
 
@@ -515,7 +516,10 @@ public class XmppConnectionService extends Service {
 		boolean send = false;
 		if (account.getStatus() == Account.STATUS_ONLINE) {
 			if (message.getType() == Message.TYPE_IMAGE) {
-				if (message.getPresence() != null) {
+				if (conv.getMode() == Conversation.MODE_MULTI || Config.USE_HTTP_UPLOAD_FOR_IMAGES) {
+					ImageUploader uploader = new ImageUploader(this);
+					uploader.init(message);
+				} else if (message.getPresence() != null) {
 					if (message.getEncryption() == Message.ENCRYPTION_OTR) {
 						if (!conv.hasValidOtrSession()
 								&& (message.getPresence() != null)) {

@@ -110,6 +110,7 @@ public class ImageDownloader implements Downloadable {
 			this.xmppConnectionService.markMessage(this.message,
 					Message.STATUS_RECEIVED);
 		}
+		xmppConnectionService.getImageDownloadManager().finishConnection(this);
 	}
 
 	private int retrieveFileSize() throws IOException {
