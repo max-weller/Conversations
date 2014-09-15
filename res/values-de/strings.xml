@@ -235,4 +235,7 @@
     <string name="image_context_menu_title">Bildaktionen</string>
     <string name="pref_ui_options">Benutzeroberfläche</string>
 
+    <string name="disable_notifications">Benachrichtigungen ausschalten</string>
+    <string name="disable_notifications_for_this_conversation">Benachrichtigungen für diese Konferenz ausschalten</string>
+    <string name="notifications_disabled">Benachrichtigungen sind aus</string>
 </resources>

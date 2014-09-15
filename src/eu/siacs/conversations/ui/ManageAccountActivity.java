@@ -3,6 +3,8 @@ package eu.siacs.conversations.ui;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.util.Log;
+import eu.siacs.conversations.Config;
 import eu.siacs.conversations.R;
 import eu.siacs.conversations.entities.Account;
 import eu.siacs.conversations.services.XmppConnectionService.OnAccountUpdate;
@@ -56,6 +58,7 @@ public class ManageAccountActivity extends XmppActivity {
 
 		accountListView = (ListView) findViewById(R.id.account_list);
 		this.mAccountAdapter = new AccountAdapter(this, accountList);
+		Log.d(Config.LOGTAG, "view="+accountListView+", adapter="+mAccountAdapter);
 		accountListView.setAdapter(this.mAccountAdapter);
 		accountListView.setOnItemClickListener(new OnItemClickListener() {
 
