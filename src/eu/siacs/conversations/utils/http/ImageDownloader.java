@@ -91,14 +91,16 @@ public class ImageDownloader implements Downloadable {
 					Message.STATUS_RECEIVING);
 
 			File outputDir = xmppConnectionService.getCacheDir();
-			this.tempFile = File.createTempFile("download", "jpg", outputDir);
+			FileBackend backend = xmppConnectionService.getFileBackend();
+			//this.tempFile = File.createTempFile("download", "jpg", outputDir);
+			this.tempFile = backend.getJingleFile(message);
 
 			handleImagePreview();
 
-			FileBackend backend = xmppConnectionService.getFileBackend();
-			Uri uri = Uri.parse("file://" + tempFile.getAbsolutePath());
-			Log.d(Config.LOGTAG, "ImageDownloader temp file uri: "+uri.toString());
-			backend.copyImageToPrivateStorage(message, uri);
+			//Uri uri = Uri.parse("file://" + tempFile.getAbsolutePath());
+			//Log.d(Config.LOGTAG, "ImageDownloader temp file uri: "+uri.toString());
+			//backend.copyImageToPrivateStorage(message, uri);
+			updateMessageBody();
 
 			this.xmppConnectionService.markMessage(this.message,
 					Message.STATUS_RECEIVED);
@@ -110,6 +112,17 @@ public class ImageDownloader implements Downloadable {
 			this.xmppConnectionService.markMessage(this.message,
 					Message.STATUS_RECEIVED);
 		}
+	}
+
+	private void updateMessageBody() {
+		BitmapFactory.Options options = new BitmapFactory.Options();
+		options.inJustDecodeBounds = true;
+		BitmapFactory.decodeFile(this.tempFile.getAbsolutePath(), options);
+		int imageHeight = options.outHeight;
+		int imageWidth = options.outWidth;
+		message.setBody(Long.toString(tempFile.length()) + ',' + imageWidth + ','
+				+ imageHeight + ',' + message.getBody());
+
 	}
 
 	private int retrieveFileSize() throws IOException {
