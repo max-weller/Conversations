@@ -100,6 +100,9 @@ public class MessageAdapter extends ArrayAdapter<Message> {
 		String filesize = null;
 		String info = null;
 		boolean error = false;
+		if (viewHolder.indicatorReceived != null) {
+			viewHolder.indicatorReceived.setVisibility(View.GONE);
+		}
 		boolean multiReceived = message.getConversation().getMode() == Conversation.MODE_MULTI
 				&& message.getMergedStatus() <= Message.STATUS_RECEIVED;
 		if (message.getType() == Message.TYPE_IMAGE) {
@@ -128,6 +131,16 @@ public class MessageAdapter extends ArrayAdapter<Message> {
 		case Message.STATUS_OFFERED:
 			info = getContext().getString(R.string.offering);
 			break;
+		case Message.STATUS_SEND_RECEIVED:
+			if (activity.indicateReceived()) {
+				viewHolder.indicatorReceived.setVisibility(View.VISIBLE);
+			}
+			break;
+		case Message.STATUS_SEND_DISPLAYED:
+			if (activity.indicateReceived()) {
+				viewHolder.indicatorReceived.setVisibility(View.VISIBLE);
+			}
+			break;
 		case Message.STATUS_SEND_FAILED:
 			info = getContext().getString(R.string.send_failed);
 			error = true;
@@ -139,6 +152,7 @@ public class MessageAdapter extends ArrayAdapter<Message> {
 		case Message.STATUS_RECEPTION_FAILED:
 			info = getContext().getString(R.string.reception_failed);
 			error = true;
+			break;
 		default:
 			if (multiReceived) {
 				Contact contact = message.getContact();
@@ -165,7 +179,7 @@ public class MessageAdapter extends ArrayAdapter<Message> {
 			viewHolder.indicator.setVisibility(View.VISIBLE);
 		}
 
-		String formatedTime = UIHelper.readableTimeDifference(getContext(),
+		String formatedTime = UIHelper.readableTimeDifferenceFull(getContext(),
 				message.getMergedTimeSent());
 		if (message.getStatus() <= Message.STATUS_RECEIVED) {
 			if ((filesize != null) && (info != null)) {
@@ -394,6 +408,8 @@ public class MessageAdapter extends ArrayAdapter<Message> {
 						.findViewById(R.id.message_body);
 				viewHolder.time = (TextView) view
 						.findViewById(R.id.message_time);
+				viewHolder.indicatorReceived = (ImageView) view
+						.findViewById(R.id.indicator_received);
 				view.setTag(viewHolder);
 				break;
 			case RECEIVED:
@@ -463,6 +479,36 @@ public class MessageAdapter extends ArrayAdapter<Message> {
 			return view;
 		}
 
+		if (viewHolder.contact_picture != null) {
+			viewHolder.contact_picture
+					.setOnClickListener(new OnClickListener() {
+
+						@Override
+						public void onClick(View v) {
+							if (MessageAdapter.this.mOnContactPictureClickedListener != null) {
+								MessageAdapter.this.mOnContactPictureClickedListener
+										.onContactPictureClicked(item);
+								;
+							}
+
+						}
+					});
+			viewHolder.contact_picture
+					.setOnLongClickListener(new OnLongClickListener() {
+
+						@Override
+						public boolean onLongClick(View v) {
+							if (MessageAdapter.this.mOnContactPictureLongClickedListener != null) {
+								MessageAdapter.this.mOnContactPictureLongClickedListener
+										.onContactPictureLongClicked(item);
+								return true;
+							} else {
+								return false;
+							}
+						}
+					});
+		}
+
 		if (type == RECEIVED) {
 			if (item.getConversation().getMode() == Conversation.MODE_MULTI) {
 				Contact contact = item.getContact();
@@ -477,33 +523,6 @@ public class MessageAdapter extends ArrayAdapter<Message> {
 					viewHolder.contact_picture.setImageBitmap(mBitmapCache.get(
 							name, getContext()));
 				}
-				viewHolder.contact_picture
-						.setOnClickListener(new OnClickListener() {
-
-							@Override
-							public void onClick(View v) {
-								if (MessageAdapter.this.mOnContactPictureClickedListener != null) {
-									MessageAdapter.this.mOnContactPictureClickedListener
-											.onContactPictureClicked(item);
-									;
-								}
-
-							}
-						});
-				viewHolder.contact_picture
-						.setOnLongClickListener(new OnLongClickListener() {
-
-							@Override
-							public boolean onLongClick(View v) {
-								if (MessageAdapter.this.mOnContactPictureLongClickedListener != null) {
-									MessageAdapter.this.mOnContactPictureLongClickedListener
-											.onContactPictureLongClicked(item);
-									return true;
-								} else {
-									return false;
-								}
-							}
-						});
 			}
 		}
 
@@ -569,6 +588,7 @@ public class MessageAdapter extends ArrayAdapter<Message> {
 		protected Button download_button;
 		protected ImageView image;
 		protected ImageView indicator;
+		protected ImageView indicatorReceived;
 		protected TextView time;
 		protected TextView messageBody;
 		protected ImageView contact_picture;

@@ -10,10 +10,15 @@ import net.java.otr4j.session.Session;
 import eu.siacs.conversations.entities.Account;
 import eu.siacs.conversations.entities.Conversation;
 import eu.siacs.conversations.entities.Message;
+import eu.siacs.conversations.services.XmppConnectionService;
 import eu.siacs.conversations.xml.Element;
 import eu.siacs.conversations.xmpp.stanzas.MessagePacket;
 
-public class MessageGenerator {
+public class MessageGenerator extends AbstractGenerator {
+	public MessageGenerator(XmppConnectionService service) {
+		super(service);
+	}
+
 	private MessagePacket preparePacket(Message message, boolean addDelay) {
 		Conversation conversation = message.getConversation();
 		Account account = conversation.getAccount();
@@ -22,11 +27,14 @@ public class MessageGenerator {
 			packet.setTo(message.getCounterpart());
 			packet.setType(MessagePacket.TYPE_CHAT);
 			packet.addChild("markable", "urn:xmpp:chat-markers:0");
+			if (this.mXmppConnectionService.indicateReceived()) {
+				packet.addChild("request", "urn:xmpp:receipts");
+			}
 		} else if (message.getType() == Message.TYPE_PRIVATE) {
 			packet.setTo(message.getCounterpart());
 			packet.setType(MessagePacket.TYPE_CHAT);
 		} else {
-			packet.setTo(message.getCounterpart().split("/")[0]);
+			packet.setTo(message.getCounterpart().split("/", 2)[0]);
 			packet.setType(MessagePacket.TYPE_GROUPCHAT);
 		}
 		packet.setFrom(account.getFullJid());
@@ -126,7 +134,7 @@ public class MessageGenerator {
 			String subject) {
 		MessagePacket packet = new MessagePacket();
 		packet.setType(MessagePacket.TYPE_GROUPCHAT);
-		packet.setTo(conversation.getContactJid().split("/")[0]);
+		packet.setTo(conversation.getContactJid().split("/", 2)[0]);
 		Element subjectChild = new Element("subject");
 		subjectChild.setContent(subject);
 		packet.addChild(subjectChild);
@@ -140,13 +148,13 @@ public class MessageGenerator {
 		packet.setTo(contact);
 		packet.setFrom(conversation.getAccount().getFullJid());
 		Element x = packet.addChild("x", "jabber:x:conference");
-		x.setAttribute("jid", conversation.getContactJid().split("/")[0]);
+		x.setAttribute("jid", conversation.getContactJid().split("/", 2)[0]);
 		return packet;
 	}
 
 	public MessagePacket invite(Conversation conversation, String contact) {
 		MessagePacket packet = new MessagePacket();
-		packet.setTo(conversation.getContactJid().split("/")[0]);
+		packet.setTo(conversation.getContactJid().split("/", 2)[0]);
 		packet.setFrom(conversation.getAccount().getFullJid());
 		Element x = new Element("x");
 		x.setAttribute("xmlns", "http://jabber.org/protocol/muc#user");

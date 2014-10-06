@@ -15,6 +15,7 @@ import eu.siacs.conversations.entities.Presences;
 import eu.siacs.conversations.services.XmppConnectionService;
 import eu.siacs.conversations.services.XmppConnectionService.XmppConnectionBinder;
 import eu.siacs.conversations.utils.ExceptionHelper;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
@@ -58,10 +59,13 @@ public abstract class XmppActivity extends Activity {
 
 	protected int mPrimaryTextColor;
 	protected int mSecondaryTextColor;
+	protected int mSecondaryBackgroundColor;
 	protected int mColorRed;
 	protected int mColorOrange;
 	protected int mColorGreen;
 	protected int mPrimaryColor;
+
+	protected boolean mUseSubject = true;
 
 	private DisplayMetrics metrics;
 
@@ -204,14 +208,21 @@ public abstract class XmppActivity extends Activity {
 		mColorOrange = getResources().getColor(R.color.orange);
 		mColorGreen = getResources().getColor(R.color.green);
 		mPrimaryColor = getResources().getColor(R.color.primary);
+		mSecondaryBackgroundColor = getResources().getColor(
+				R.color.secondarybackground);
 		if (getPreferences().getBoolean("use_larger_font", false)) {
 			setTheme(R.style.ConversationsTheme_LargerText);
 		}
+		mUseSubject = getPreferences().getBoolean("use_subject", true);
 	}
 
 	protected SharedPreferences getPreferences() {
 		return PreferenceManager
 				.getDefaultSharedPreferences(getApplicationContext());
+	}
+
+	public boolean useSubjectToIdentifyConference() {
+		return mUseSubject;
 	}
 
 	public void switchToConversation(Conversation conversation) {
@@ -238,6 +249,7 @@ public abstract class XmppActivity extends Activity {
 					| Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		}
 		startActivity(viewConversationIntent);
+		finish();
 	}
 
 	public void switchToContactDetails(Contact contact) {
@@ -245,6 +257,12 @@ public abstract class XmppActivity extends Activity {
 		intent.setAction(ContactDetailsActivity.ACTION_VIEW_CONTACT);
 		intent.putExtra("account", contact.getAccount().getJid());
 		intent.putExtra("contact", contact.getJid());
+		startActivity(intent);
+	}
+
+	public void switchToAccount(Account account) {
+		Intent intent = new Intent(this, EditAccountActivity.class);
+		intent.putExtra("jid", account.getJid());
 		startActivity(intent);
 	}
 
@@ -279,6 +297,8 @@ public abstract class XmppActivity extends Activity {
 						if (conversation != null) {
 							conversation
 									.setNextEncryption(Message.ENCRYPTION_PGP);
+							xmppConnectionService.databaseBackend
+									.updateConversation(conversation);
 						}
 					}
 
@@ -376,6 +396,7 @@ public abstract class XmppActivity extends Activity {
 		quickEdit(previousValue, callback, true);
 	}
 
+	@SuppressLint("InflateParams")
 	private void quickEdit(final String previousValue,
 			final OnValueEdited callback, boolean password) {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -499,6 +520,10 @@ public abstract class XmppActivity extends Activity {
 
 	public int getPrimaryColor() {
 		return this.mPrimaryColor;
+	}
+
+	public int getSecondaryBackgroundColor() {
+		return this.mSecondaryBackgroundColor;
 	}
 
 	class BitmapWorkerTask extends AsyncTask<Message, Void, Bitmap> {

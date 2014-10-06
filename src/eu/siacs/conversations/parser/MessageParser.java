@@ -12,6 +12,7 @@ import eu.siacs.conversations.entities.Account;
 import eu.siacs.conversations.entities.Contact;
 import eu.siacs.conversations.entities.Conversation;
 import eu.siacs.conversations.entities.Message;
+import eu.siacs.conversations.services.NotificationService;
 import eu.siacs.conversations.services.XmppConnectionService;
 import eu.siacs.conversations.utils.CryptoHelper;
 import eu.siacs.conversations.xml.Element;
@@ -29,7 +30,7 @@ public class MessageParser extends AbstractParser implements
 	}
 
 	private Message parseChat(MessagePacket packet, Account account) {
-		String[] fromParts = packet.getFrom().split("/");
+		String[] fromParts = packet.getFrom().split("/", 2);
 		Conversation conversation = mXmppConnectionService
 				.findOrCreateConversation(account, fromParts[0], false);
 		conversation.setLatestMarkableMessageId(getMarkableMessageId(packet));
@@ -67,9 +68,9 @@ public class MessageParser extends AbstractParser implements
 	}
 
 	private Message parseOtrChat(MessagePacket packet, Account account) {
-		boolean properlyAddressed = (packet.getTo().split("/").length == 2)
+		boolean properlyAddressed = (packet.getTo().split("/", 2).length == 2)
 				|| (account.countPresences() == 1);
-		String[] fromParts = packet.getFrom().split("/");
+		String[] fromParts = packet.getFrom().split("/", 2);
 		Conversation conversation = mXmppConnectionService
 				.findOrCreateConversation(account, fromParts[0], false);
 		String presence;
@@ -81,7 +82,7 @@ public class MessageParser extends AbstractParser implements
 		updateLastseen(packet, account, true);
 		String body = packet.getBody();
 		if (body.matches("^\\?OTRv\\d*\\?")) {
-			conversation.resetOtrSession();
+			conversation.endOtrIfNeeded();
 		}
 		if (!conversation.hasValidOtrSession()) {
 			if (properlyAddressed) {
@@ -142,7 +143,7 @@ public class MessageParser extends AbstractParser implements
 
 	private Message parseGroupchat(MessagePacket packet, Account account) {
 		int status;
-		String[] fromParts = packet.getFrom().split("/");
+		String[] fromParts = packet.getFrom().split("/", 2);
 		if (mXmppConnectionService.find(account.pendingConferenceLeaves,
 				account, fromParts[0]) != null) {
 			return null;
@@ -204,11 +205,11 @@ public class MessageParser extends AbstractParser implements
 		Element forwarded;
 		if (packet.hasChild("received", "urn:xmpp:carbons:2")) {
 			forwarded = packet.findChild("received", "urn:xmpp:carbons:2")
-				.findChild("forwarded", "urn:xmpp:forward:0");
+					.findChild("forwarded", "urn:xmpp:forward:0");
 			status = Message.STATUS_RECEIVED;
 		} else if (packet.hasChild("sent", "urn:xmpp:carbons:2")) {
 			forwarded = packet.findChild("sent", "urn:xmpp:carbons:2")
-				.findChild("forwarded", "urn:xmpp:forward:0");
+					.findChild("forwarded", "urn:xmpp:forward:0");
 			status = Message.STATUS_SEND;
 		} else {
 			return null;
@@ -217,10 +218,24 @@ public class MessageParser extends AbstractParser implements
 			return null;
 		}
 		Element message = forwarded.findChild("message");
-		if ((message == null) || (!message.hasChild("body"))) {
+		if (message == null) {
+			return null;
+		}
+		if (!message.hasChild("body")) {
 			if (status == Message.STATUS_RECEIVED
 					&& message.getAttribute("from") != null) {
 				parseNonMessage(message, account);
+			} else if (status == Message.STATUS_SEND
+					&& message.hasChild("displayed", "urn:xmpp:chat-markers:0")) {
+				String to = message.getAttribute("to");
+				if (to != null) {
+					Conversation conversation = mXmppConnectionService.find(
+							mXmppConnectionService.getConversations(), account,
+							to.split("/")[0]);
+					if (conversation != null) {
+						mXmppConnectionService.markRead(conversation, false);
+					}
+				}
 			}
 			return null;
 		}
@@ -237,7 +252,7 @@ public class MessageParser extends AbstractParser implements
 				return null;
 			}
 		}
-		String[] parts = fullJid.split("/");
+		String[] parts = fullJid.split("/", 2);
 		Conversation conversation = mXmppConnectionService
 				.findOrCreateConversation(account, parts[0], false);
 		conversation.setLatestMarkableMessageId(getMarkableMessageId(packet));
@@ -269,31 +284,39 @@ public class MessageParser extends AbstractParser implements
 	}
 
 	private void parseError(MessagePacket packet, Account account) {
-		String[] fromParts = packet.getFrom().split("/");
+		String[] fromParts = packet.getFrom().split("/", 2);
 		mXmppConnectionService.markMessage(account, fromParts[0],
 				packet.getId(), Message.STATUS_SEND_FAILED);
 	}
 
 	private void parseNonMessage(Element packet, Account account) {
+		String from = packet.getAttribute("from");
 		if (packet.hasChild("event", "http://jabber.org/protocol/pubsub#event")) {
 			Element event = packet.findChild("event",
 					"http://jabber.org/protocol/pubsub#event");
 			parseEvent(event, packet.getAttribute("from"), account);
-		} else if (packet.hasChild("displayed", "urn:xmpp:chat-markers:0")) {
+		} else if (from != null
+				&& packet.hasChild("displayed", "urn:xmpp:chat-markers:0")) {
 			String id = packet
 					.findChild("displayed", "urn:xmpp:chat-markers:0")
 					.getAttribute("id");
-			String[] fromParts = packet.getAttribute("from").split("/");
 			updateLastseen(packet, account, true);
-			mXmppConnectionService.markMessage(account, fromParts[0], id,
-					Message.STATUS_SEND_DISPLAYED);
-		} else if (packet.hasChild("received", "urn:xmpp:chat-markers:0")) {
+			mXmppConnectionService.markMessage(account, from.split("/", 2)[0],
+					id, Message.STATUS_SEND_DISPLAYED);
+		} else if (from != null
+				&& packet.hasChild("received", "urn:xmpp:chat-markers:0")) {
 			String id = packet.findChild("received", "urn:xmpp:chat-markers:0")
 					.getAttribute("id");
-			String[] fromParts = packet.getAttribute("from").split("/");
 			updateLastseen(packet, account, false);
-			mXmppConnectionService.markMessage(account, fromParts[0], id,
-					Message.STATUS_SEND_RECEIVED);
+			mXmppConnectionService.markMessage(account, from.split("/", 2)[0],
+					id, Message.STATUS_SEND_RECEIVED);
+		} else if (from != null
+				&& packet.hasChild("received", "urn:xmpp:receipts")) {
+			String id = packet.findChild("received", "urn:xmpp:receipts")
+					.getAttribute("id");
+			updateLastseen(packet, account, false);
+			mXmppConnectionService.markMessage(account, from.split("/", 2)[0],
+					id, Message.STATUS_SEND_RECEIVED);
 		} else if (packet.hasChild("x", "http://jabber.org/protocol/muc#user")) {
 			Element x = packet.findChild("x",
 					"http://jabber.org/protocol/muc#user");
@@ -306,6 +329,8 @@ public class MessageParser extends AbstractParser implements
 						Element password = x.findChild("password");
 						conversation.getMucOptions().setPassword(
 								password.getContent());
+						mXmppConnectionService.databaseBackend
+								.updateConversation(conversation);
 					}
 					mXmppConnectionService.joinMuc(conversation);
 					mXmppConnectionService.updateConversationUi();
@@ -321,6 +346,8 @@ public class MessageParser extends AbstractParser implements
 				if (!conversation.getMucOptions().online()) {
 					if (password != null) {
 						conversation.getMucOptions().setPassword(password);
+						mXmppConnectionService.databaseBackend
+								.updateConversation(conversation);
 					}
 					mXmppConnectionService.joinMuc(conversation);
 					mXmppConnectionService.updateConversationUi();
@@ -390,11 +417,13 @@ public class MessageParser extends AbstractParser implements
 	@Override
 	public void onMessagePacketReceived(Account account, MessagePacket packet) {
 		Message message = null;
-		boolean notify = true;
-		if (mXmppConnectionService.getPreferences().getBoolean(
-				"notification_grace_period_after_carbon_received", true)) {
-			notify = (SystemClock.elapsedRealtime() - lastCarbonMessageReceived) > (Config.CARBON_GRACE_PERIOD * 1000);
-		}
+		boolean notify = mXmppConnectionService.getPreferences().getBoolean(
+				"show_notification", true);
+		notify = notify
+				&& (SystemClock.elapsedRealtime() - lastCarbonMessageReceived) > (Config.CARBON_GRACE_PERIOD * 1000);
+		boolean alwaysNotifyInConference = notify
+				&& mXmppConnectionService.getPreferences().getBoolean(
+						"always_notify_in_conference", false);
 
 		this.parseNick(packet, account);
 
@@ -405,7 +434,9 @@ public class MessageParser extends AbstractParser implements
 				if (message != null) {
 					message.markUnread();
 				}
-			} else if (packet.hasChild("body")) {
+			} else if (packet.hasChild("body")
+					&& !(packet.hasChild("x",
+							"http://jabber.org/protocol/muc#user"))) {
 				message = this.parseChat(packet, account);
 				if (message != null) {
 					message.markUnread();
@@ -418,7 +449,8 @@ public class MessageParser extends AbstractParser implements
 						lastCarbonMessageReceived = SystemClock
 								.elapsedRealtime();
 						notify = false;
-						message.getConversation().markRead();
+						mXmppConnectionService.markRead(
+								message.getConversation(), false);
 					} else {
 						message.markUnread();
 					}
@@ -431,8 +463,12 @@ public class MessageParser extends AbstractParser implements
 			if (message != null) {
 				if (message.getStatus() == Message.STATUS_RECEIVED) {
 					message.markUnread();
+					notify = alwaysNotifyInConference
+							|| NotificationService
+									.wasHighlightedOrPrivate(message);
 				} else {
-					message.getConversation().markRead();
+					mXmppConnectionService.markRead(message.getConversation(),
+							false);
 					lastCarbonMessageReceived = SystemClock.elapsedRealtime();
 					notify = false;
 				}
@@ -471,7 +507,10 @@ public class MessageParser extends AbstractParser implements
 			}
 		}
 		notify = notify && !conversation.isMuted();
-		mXmppConnectionService.notifyUi(conversation, notify);
+		if (notify) {
+			mXmppConnectionService.getNotificationService().push(message);
+		}
+		mXmppConnectionService.updateConversationUi();
 	}
 
 	private void parseHeadline(MessagePacket packet, Account account) {
